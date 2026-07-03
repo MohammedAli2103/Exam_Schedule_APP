@@ -222,6 +222,13 @@ class _SubjectsViewState extends State<SubjectsView> {
                   final success = await subVm.addSubject(name);
                   if (success && context.mounted) {
                     Navigator.pop(context);
+                  } else if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(subVm.errorMessage ?? "Failed to create subject"),
+                        backgroundColor: Theme.of(context).colorScheme.error,
+                      ),
+                    );
                   }
                 }
               },
