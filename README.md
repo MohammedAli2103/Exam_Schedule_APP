@@ -212,6 +212,7 @@ Contributions, suggestions, and feedback are welcome. Feel free to open an issue
 This project is licensed under the MIT License.
 
 ---
+Updated GitHub Pages deployment.
 
 ## ⭐ Support
 
