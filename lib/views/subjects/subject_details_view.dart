@@ -1,7 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../viewmodels/subject_viewmodel.dart';
 import '../../models/chapter.dart';
 import '../../models/note.dart';
@@ -422,11 +424,90 @@ class _SubjectDetailsViewState extends State<SubjectDetailsView> {
                                           const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
                                         ],
                                       ),
-                                      onTap: () {
-                                        // Open note file link using deep linking or system launcher
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text("Opening file: ${note.fileUrl}")),
-                                        );
+                                      onTap: () async {
+                                        final fileUrl = note.fileUrl.trim();
+                                        debugPrint("Note onTap triggered. File: '${note.name}', URL: '$fileUrl'");
+                                        if (fileUrl.isEmpty) {
+                                          debugPrint("Note launch aborted: File URL is empty.");
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text("Error: The file URL is empty for '${note.name}'."),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                          return;
+                                        }
+
+                                        final uri = Uri.tryParse(fileUrl);
+                                        if (uri == null || !uri.hasScheme || !uri.hasAuthority) {
+                                          debugPrint("Note launch aborted: Invalid URL format '$fileUrl'.");
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text("Error: Invalid URL format for '${note.name}'."),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                          return;
+                                        }
+
+                                        try {
+                                          debugPrint("Checking canLaunchUrl for: '$uri'");
+                                          final bool canLaunch = await canLaunchUrl(uri);
+                                          debugPrint("canLaunchUrl result: $canLaunch");
+                                          if (!canLaunch) {
+                                            debugPrint("Note launch failed: canLaunchUrl returned false.");
+                                            if (context.mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text("Error: No application found to open this file type, or permission was denied."),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                            }
+                                            return;
+                                          }
+
+                                          // Launch the URL externally (LaunchMode.externalApplication is more appropriate for file links
+                                          // to prevent blank screens or failure to download/render inside in-app web views)
+                                          debugPrint("Invoking launchUrl with LaunchMode.externalApplication for '$uri'...");
+                                          final bool launched = await launchUrl(
+                                            uri,
+                                            mode: LaunchMode.externalApplication,
+                                          );
+                                          debugPrint("launchUrl result: $launched");
+
+                                          if (!launched && context.mounted) {
+                                            debugPrint("Note launch failed: launchUrl returned false.");
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text("Error: Failed to open '${note.name}'."),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        } on PlatformException catch (e) {
+                                          debugPrint("PlatformException while launching URL: $e");
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text("Error: ${e.message ?? e.toString()}"),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        } catch (e) {
+                                          debugPrint("Exception while launching URL: $e");
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text("Error: Failed to open '${note.name}': $e"),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        }
                                       },
                                     );
                                   },

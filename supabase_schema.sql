@@ -222,9 +222,44 @@ create index if not exists study_sessions_user_id_idx on public.study_sessions(u
 create index if not exists study_sessions_time_idx on public.study_sessions(start_time, end_time);
 
 ---------------------------------------------------------
--- 9. STORAGE BUCKET CONFIGURATION
+-- 9. STORAGE BUCKET CONFIGURATION & POLICIES
 ---------------------------------------------------------
--- Note: Create a bucket named "notes" in your Supabase Storage dashboard.
--- Ensure to set Row Level Security on the Storage bucket as well.
--- Example policy for the "notes" bucket:
---   Allow authenticated users ALL operations on: "notes" bucket where path matches: auth.uid() || '/*'
+-- Create a public bucket named "notes" if it doesn't exist
+insert into storage.buckets (id, name, public)
+values ('notes', 'notes', true)
+on conflict (id) do update set public = true;
+
+-- Policies for the "notes" bucket:
+
+-- 1. Allow public read access to anyone (needed for external browser/apps to view the files via getPublicUrl)
+create policy "Allow public read access on notes"
+    on storage.objects for select
+    using (bucket_id = 'notes');
+
+-- 2. Allow authenticated users to upload files to their own user directory
+create policy "Allow authenticated users to upload notes"
+    on storage.objects for insert
+    to authenticated
+    with check (
+        bucket_id = 'notes'
+        and (storage.foldername(name))[1] = auth.uid()::text
+    );
+
+-- 3. Allow users to update files in their own user directory
+create policy "Allow users to update their own notes"
+    on storage.objects for update
+    to authenticated
+    using (
+        bucket_id = 'notes'
+        and (storage.foldername(name))[1] = auth.uid()::text
+    );
+
+-- 4. Allow users to delete files in their own user directory
+create policy "Allow users to delete their own notes"
+    on storage.objects for delete
+    to authenticated
+    using (
+        bucket_id = 'notes'
+        and (storage.foldername(name))[1] = auth.uid()::text
+    );
+
