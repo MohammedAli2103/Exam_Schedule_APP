@@ -45,15 +45,17 @@ class ProgressViewModel extends ChangeNotifier {
   int get totalChaptersCount => _totalChaptersCount;
   int get streakCount => _streakCount;
 
-  Future<void> fetchProgressData() async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+  Future<void> fetchProgressData({bool forceRefresh = false}) async {
+    if (_subjects.isEmpty || _sessions.isEmpty || forceRefresh) {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
 
     try {
       // 1. Fetch data from repositories
-      _subjects = await _subjectRepo.fetchSubjects();
-      _sessions = await _sessionRepo.fetchSessions();
+      _subjects = await _subjectRepo.fetchSubjects(forceRefresh: forceRefresh);
+      _sessions = await _sessionRepo.fetchSessions(forceRefresh: forceRefresh);
       
       final currentUserId = _authRepo.currentUser?.id;
       if (currentUserId != null) {

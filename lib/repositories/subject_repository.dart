@@ -2,11 +2,32 @@ import '../services/supabase_service.dart';
 import '../models/subject.dart';
 
 class SubjectRepository {
+  // Singleton instance
+  static final SubjectRepository _instance = SubjectRepository._internal();
+
+  factory SubjectRepository() {
+    return _instance;
+  }
+
+  SubjectRepository._internal();
+
   final SupabaseService _db = SupabaseService.instance;
+
+  // Cache
+  List<Subject>? _cachedSubjects;
+
+  /// Clears the subjects cache.
+  void clearCache() {
+    _cachedSubjects = null;
+  }
 
   /// Fetches all subjects for the authenticated user along with their chapters and notes
   /// to compute counts and progress percentages dynamically.
-  Future<List<Subject>> fetchSubjects() async {
+  Future<List<Subject>> fetchSubjects({bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedSubjects != null) {
+      return _cachedSubjects!;
+    }
+
     // DEVELOPMENT ONLY
     // Replace with authenticated user before production.
     // final userId = _db.currentUser?.id;
@@ -18,7 +39,7 @@ class SubjectRepository {
         // .eq('user_id', userId)
         .order('name', ascending: true);
 
-    return data.map((json) {
+    _cachedSubjects = data.map((json) {
       final chapters = json['chapters'] as List? ?? [];
       final chapterCount = chapters.length;
       final completedChapters = chapters.where((c) => c['is_completed'] == true).length;
@@ -44,6 +65,8 @@ class SubjectRepository {
         progressPercentage: progressPercentage,
       );
     }).toList();
+
+    return _cachedSubjects!;
   }
 
   // Create Subject
@@ -63,6 +86,7 @@ class SubjectRepository {
         .select()
         .single();
 
+    clearCache();
     return Subject.fromJson(data);
   }
 
@@ -75,11 +99,14 @@ class SubjectRepository {
         .select()
         .single();
 
+    clearCache();
     return Subject.fromJson(data);
   }
 
   // Delete Subject (Cascades deletion on Supabase side)
   Future<void> deleteSubject(String id) async {
     await _db.client.from('subjects').delete().eq('id', id);
+    clearCache();
   }
 }
+

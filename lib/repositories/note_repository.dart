@@ -1,19 +1,48 @@
 import 'dart:io';
 import '../services/supabase_service.dart';
 import '../models/note.dart';
+import 'chapter_repository.dart';
+import 'subject_repository.dart';
 
 class NoteRepository {
+  // Singleton instance
+  static final NoteRepository _instance = NoteRepository._internal();
+
+  factory NoteRepository() {
+    return _instance;
+  }
+
+  NoteRepository._internal();
+
   final SupabaseService _db = SupabaseService.instance;
 
+  // Cache: chapterId -> list of notes
+  final Map<String, List<Note>> _cachedNotes = {};
+
+  /// Clears the notes cache.
+  void clearCache({String? chapterId}) {
+    if (chapterId != null) {
+      _cachedNotes.remove(chapterId);
+    } else {
+      _cachedNotes.clear();
+    }
+  }
+
   /// Fetch notes for a given chapter.
-  Future<List<Note>> fetchNotes(String chapterId) async {
+  Future<List<Note>> fetchNotes(String chapterId, {bool forceRefresh = false}) async {
+    if (!forceRefresh && _cachedNotes.containsKey(chapterId)) {
+      return _cachedNotes[chapterId]!;
+    }
+
     final List<dynamic> data = await _db.client
         .from('notes')
         .select('*')
         .eq('chapter_id', chapterId)
         .order('created_at', ascending: true);
 
-    return data.map((json) => Note.fromJson(json)).toList();
+    final notes = data.map((json) => Note.fromJson(json)).toList();
+    _cachedNotes[chapterId] = notes;
+    return notes;
   }
 
   /// Upload note to storage, and then insert metadata into DB.
@@ -55,7 +84,14 @@ class NoteRepository {
         .select()
         .single();
 
-    return Note.fromJson(data);
+    final note = Note.fromJson(data);
+
+    // 3. Clear caches
+    clearCache(chapterId: chapterId);
+    ChapterRepository().clearCache();
+    SubjectRepository().clearCache();
+
+    return note;
   }
 
   /// Rename note metadata in database.
@@ -67,7 +103,9 @@ class NoteRepository {
         .select()
         .single();
 
-    return Note.fromJson(data);
+    final note = Note.fromJson(data);
+    clearCache(chapterId: note.chapterId);
+    return note;
   }
 
   /// Delete note from storage and DB.
@@ -82,9 +120,15 @@ class NoteRepository {
 
     // 2. Delete from DB
     await _db.client.from('notes').delete().eq('id', note.id);
+
+    // 3. Clear caches
+    clearCache(chapterId: note.chapterId);
+    ChapterRepository().clearCache();
+    SubjectRepository().clearCache();
   }
 
   String _sanitizeFolderName(String name) {
     return name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_').trim();
   }
 }
+

@@ -34,16 +34,22 @@ class SubjectViewModel extends ChangeNotifier {
   bool get isNotesLoading => _isNotesLoading;
   String? get errorMessage => _errorMessage;
 
+  bool _isSubjectsLoaded = false;
+  bool get isSubjectsLoaded => _isSubjectsLoaded;
+
   // --- SUBJECTS CRUD ---
 
-  Future<void> fetchSubjects() async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+  Future<void> fetchSubjects({bool forceRefresh = false}) async {
+    if (!_isSubjectsLoaded || forceRefresh) {
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
 
     try {
-      _subjects = await _subjectRepo.fetchSubjects();
+      _subjects = await _subjectRepo.fetchSubjects(forceRefresh: forceRefresh);
       _filteredSubjects = List.from(_subjects);
+      _isSubjectsLoaded = true;
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -110,14 +116,21 @@ class SubjectViewModel extends ChangeNotifier {
 
   // --- CHAPTERS CRUD ---
 
-  Future<void> fetchChapters(String subjectId) async {
-    _isDetailsLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+  String? _loadedSubjectId;
+
+  Future<void> fetchChapters(String subjectId, {bool forceRefresh = false}) async {
+    if (_loadedSubjectId != subjectId || forceRefresh) {
+      _chapters = [];
+      _filteredChapters = [];
+      _isDetailsLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
 
     try {
-      _chapters = await _chapterRepo.fetchChapters(subjectId);
+      _chapters = await _chapterRepo.fetchChapters(subjectId, forceRefresh: forceRefresh);
       _filteredChapters = List.from(_chapters);
+      _loadedSubjectId = subjectId;
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -202,13 +215,19 @@ class SubjectViewModel extends ChangeNotifier {
 
   // --- NOTES CRUD ---
 
-  Future<void> fetchNotes(String chapterId) async {
-    _isNotesLoading = true;
-    _errorMessage = null;
-    notifyListeners();
+  String? _loadedChapterId;
+
+  Future<void> fetchNotes(String chapterId, {bool forceRefresh = false}) async {
+    if (_loadedChapterId != chapterId || forceRefresh) {
+      _notes = [];
+      _isNotesLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+    }
 
     try {
-      _notes = await _noteRepo.fetchNotes(chapterId);
+      _notes = await _noteRepo.fetchNotes(chapterId, forceRefresh: forceRefresh);
+      _loadedChapterId = chapterId;
     } catch (e) {
       _errorMessage = e.toString();
     } finally {

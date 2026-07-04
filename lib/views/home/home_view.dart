@@ -32,9 +32,9 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async {
-          await homeVm.fetchHomeSessions();
-          if (!mounted) return;
-          await Provider.of<SubjectViewModel>(context, listen: false).fetchSubjects();
+          final subVm = Provider.of<SubjectViewModel>(context, listen: false);
+          await homeVm.fetchHomeSessions(forceRefresh: true);
+          await subVm.fetchSubjects(forceRefresh: true);
         },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),

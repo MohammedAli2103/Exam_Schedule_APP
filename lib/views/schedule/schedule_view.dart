@@ -5,10 +5,9 @@ import '../../viewmodels/schedule_viewmodel.dart';
 import '../../viewmodels/subject_viewmodel.dart';
 import '../../viewmodels/home_viewmodel.dart';
 import '../../models/study_session.dart';
-import '../../models/subject.dart';
 import '../../models/chapter.dart';
-import '../../utils/constants.dart';
 import '../subjects/subject_details_view.dart';
+import 'create_study_session_view.dart';
 
 class ScheduleView extends StatefulWidget {
   const ScheduleView({super.key});
@@ -18,19 +17,66 @@ class ScheduleView extends StatefulWidget {
 }
 
 class _ScheduleViewState extends State<ScheduleView> {
+  late final ScrollController _scrollController;
+  DateTime? _lastSelectedDate;
+  static const int _centerIndex = 5000;
+  static const double _itemWidth = 68.0;
+
   @override
   void initState() {
     super.initState();
+    _scrollController = ScrollController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToSelectedDate(animate: false);
       Provider.of<ScheduleViewModel>(context, listen: false).fetchSessions();
       Provider.of<SubjectViewModel>(context, listen: false).fetchSubjects();
     });
   }
 
   @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollToSelectedDate({bool animate = false}) {
+    if (!_scrollController.hasClients) return;
+
+    final vm = Provider.of<ScheduleViewModel>(context, listen: false);
+    final today = DateUtils.dateOnly(DateTime.now());
+    final selected = DateUtils.dateOnly(vm.selectedDate);
+    final differenceInDays = selected.difference(today).inDays;
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final targetOffset = ((_centerIndex + differenceInDays) * _itemWidth) - (screenWidth / 2) + (_itemWidth / 2);
+
+    if (animate) {
+      _scrollController.animateTo(
+        targetOffset,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      _scrollController.jumpTo(targetOffset);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scheduleVm = Provider.of<ScheduleViewModel>(context);
     final theme = Theme.of(context);
+
+    // Track selected date changes to auto-scroll
+    final normalizedSelectedDate = DateUtils.dateOnly(scheduleVm.selectedDate);
+    if (_lastSelectedDate == null) {
+      _lastSelectedDate = normalizedSelectedDate;
+    } else if (_lastSelectedDate != normalizedSelectedDate) {
+      _lastSelectedDate = normalizedSelectedDate;
+      // Scroll to the new date after the current frame builds
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollToSelectedDate(animate: true);
+      });
+    }
 
     return Scaffold(
       body: Column(
@@ -68,39 +114,46 @@ class _ScheduleViewState extends State<ScheduleView> {
   }
 
   Widget _buildCalendarStrip(ThemeData theme, ScheduleViewModel vm) {
-    final today = DateTime.now();
-    // Render a 14-day strip (-7 days to +7 days)
-    final List<DateTime> dates = List.generate(
-      15,
-      (index) => today.subtract(const Duration(days: 7)).add(Duration(days: index)),
-    );
+    final today = DateUtils.dateOnly(DateTime.now());
 
     return Container(
       height: 90,
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: ListView.builder(
+        controller: _scrollController,
         scrollDirection: Axis.horizontal,
-        itemCount: dates.length,
+        itemCount: 10000, // Large number for virtually infinite scrolling
         itemBuilder: (context, index) {
-          final date = dates[index];
-          final isSelected = date.year == vm.selectedDate.year &&
-              date.month == vm.selectedDate.month &&
-              date.day == vm.selectedDate.day;
+          final date = today.add(Duration(days: index - _centerIndex));
+          final isSelected = DateUtils.isSameDay(date, vm.selectedDate);
+          final isToday = DateUtils.isSameDay(date, today);
 
           final weekdayStr = DateFormat('E').format(date).toUpperCase();
           final dayStr = DateFormat('d').format(date);
 
+          final Color containerColor = isSelected
+              ? theme.colorScheme.primary
+              : isToday
+                  ? theme.colorScheme.primaryContainer.withValues(alpha: 0.4)
+                  : Colors.transparent;
+
+          final Color borderColor = isSelected
+              ? Colors.transparent
+              : isToday
+                  ? theme.colorScheme.primary.withValues(alpha: 0.5)
+                  : theme.colorScheme.outline.withValues(alpha: 0.3);
+
           return GestureDetector(
-            onTap: () => vm.changeSelectedDate(date),
+            onTap: () {
+              vm.changeSelectedDate(date);
+            },
             child: Container(
               width: 56,
               margin: const EdgeInsets.symmetric(horizontal: 6),
               decoration: BoxDecoration(
-                color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                color: containerColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected ? Colors.transparent : theme.colorScheme.outline.withValues(alpha: 0.3),
-                ),
+                border: Border.all(color: borderColor, width: isToday && !isSelected ? 2 : 1),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -110,7 +163,11 @@ class _ScheduleViewState extends State<ScheduleView> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurfaceVariant,
+                      color: isSelected
+                          ? theme.colorScheme.onPrimary
+                          : isToday
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -119,7 +176,11 @@ class _ScheduleViewState extends State<ScheduleView> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? theme.colorScheme.onPrimary : theme.colorScheme.onSurface,
+                      color: isSelected
+                          ? theme.colorScheme.onPrimary
+                          : isToday
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurface,
                     ),
                   ),
                 ],
@@ -139,7 +200,7 @@ class _ScheduleViewState extends State<ScheduleView> {
           Icon(Icons.calendar_today_outlined, size: 64, color: theme.colorScheme.secondary.withValues(alpha: 0.5)),
           const SizedBox(height: 16),
           Text(
-            "No sessions scheduled for today.",
+            "No sessions scheduled.",
             style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.secondary),
           ),
           const SizedBox(height: 12),
@@ -379,424 +440,19 @@ class _ScheduleViewState extends State<ScheduleView> {
     );
   }
 
-  // CREATE STUDY SESSION WIZARD (DIALOG)
+  // NAVIGATE TO CREATE STUDY SESSION PAGE
   void _openCreateSessionDialog(
     BuildContext context,
     ScheduleViewModel vm,
     StudySession? existingSession, // Null if new creation, otherwise edit
   ) {
-    final subVm = Provider.of<SubjectViewModel>(context, listen: false);
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return SessionWizardDialog(
-          subjects: subVm.subjects,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CreateStudySessionPage(
           existingSession: existingSession,
-          scheduleVm: vm,
-        );
-      },
-    );
-  }
-}
-
-// Dialog Wizard Class for Create Study Session
-class SessionWizardDialog extends StatefulWidget {
-  final List<Subject> subjects;
-  final StudySession? existingSession;
-  final ScheduleViewModel scheduleVm;
-
-  const SessionWizardDialog({
-    super.key,
-    required this.subjects,
-    this.existingSession,
-    required this.scheduleVm,
-  });
-
-  @override
-  State<SessionWizardDialog> createState() => _SessionWizardDialogState();
-}
-
-class _SessionWizardDialogState extends State<SessionWizardDialog> {
-  int _currentStep = 1;
-
-  // Values
-  Subject? _selectedSubject;
-  List<Chapter> _availableChapters = [];
-  final List<String> _selectedChapterIds = [];
-  String _selectedStudyType = AppConstants.studyTypes.first;
-  final _notesController = TextEditingController();
-
-  DateTime _startTime = DateTime.now().add(const Duration(hours: 1));
-  DateTime _endTime = DateTime.now().add(const Duration(hours: 2));
-
-  bool _isSaving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _startTime = DateTime(
-      widget.scheduleVm.selectedDate.year,
-      widget.scheduleVm.selectedDate.month,
-      widget.scheduleVm.selectedDate.day,
-      _startTime.hour,
-      0,
-    );
-    _endTime = _startTime.add(const Duration(hours: 2));
-
-    if (widget.existingSession != null) {
-      final session = widget.existingSession!;
-      _selectedStudyType = session.studyType;
-      _notesController.text = session.notes ?? '';
-      _startTime = session.startTime;
-      _endTime = session.endTime;
-
-      // Match subject
-      if (widget.subjects.isNotEmpty) {
-        _selectedSubject = widget.subjects.firstWhere(
-          (s) => s.id == session.subjectId,
-          orElse: () => widget.subjects.first,
-        );
-        _selectedChapterIds.addAll(session.chapters.map((c) => c.id));
-        _loadChaptersForSubject();
-      }
-    } else if (widget.subjects.isNotEmpty) {
-      _selectedSubject = widget.subjects.first;
-      _loadChaptersForSubject();
-    }
-  }
-
-  void _loadChaptersForSubject() async {
-    if (_selectedSubject == null) return;
-    final subVm = Provider.of<SubjectViewModel>(context, listen: false);
-    await subVm.fetchChapters(_selectedSubject!.id);
-    setState(() {
-      _availableChapters = subVm.chapters;
-    });
-  }
-
-  Future<void> _selectTime(bool isStart) async {
-    final initialTime = TimeOfDay.fromDateTime(isStart ? _startTime : _endTime);
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: initialTime,
-    );
-
-    if (picked != null) {
-      setState(() {
-        final base = widget.scheduleVm.selectedDate;
-        if (isStart) {
-          _startTime = DateTime(base.year, base.month, base.day, picked.hour, picked.minute);
-          // Auto adjust end time to be +1 hour
-          _endTime = _startTime.add(const Duration(hours: 1));
-        } else {
-          _endTime = DateTime(base.year, base.month, base.day, picked.hour, picked.minute);
-        }
-      });
-    }
-  }
-
-  void _save() async {
-    if (_selectedSubject == null) return;
-    if (_endTime.isBefore(_startTime)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("End time must be after start time.")),
-      );
-      return;
-    }
-
-    setState(() => _isSaving = true);
-
-    bool success;
-    if (widget.existingSession != null) {
-      success = await widget.scheduleVm.updateSession(
-        sessionId: widget.existingSession!.id,
-        subjectId: _selectedSubject!.id,
-        studyType: _selectedStudyType,
-        chapterIds: _selectedChapterIds,
-        startTime: _startTime,
-        endTime: _endTime,
-        isCompleted: widget.existingSession!.isCompleted,
-        notes: _notesController.text.trim(),
-      );
-    } else {
-      success = await widget.scheduleVm.createSession(
-        subjectId: _selectedSubject!.id,
-        studyType: _selectedStudyType,
-        chapterIds: _selectedChapterIds,
-        startTime: _startTime,
-        endTime: _endTime,
-        notes: _notesController.text.trim(),
-      );
-    }
-
-    setState(() => _isSaving = false);
-
-    if (success && mounted) {
-      Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions();
-      Navigator.pop(context);
-    } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.scheduleVm.errorMessage ?? "Failed to save session.")),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AlertDialog(
-      title: Text(widget.existingSession != null ? "Edit Study Session" : "Create Study Session"),
-      content: SingleChildScrollView(
-        child: SizedBox(
-          width: double.maxFinite,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Step Indicators
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) {
-                  final step = index + 1;
-                  final isDone = step < _currentStep;
-                  final isActive = step == _currentStep;
-                  return Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 12,
-                        backgroundColor: isDone
-                            ? Colors.green
-                            : isActive
-                                ? theme.colorScheme.primary
-                                : Colors.grey[300],
-                        child: isDone
-                            ? const Icon(Icons.check, size: 12, color: Colors.white)
-                            : Text(
-                                step.toString(),
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: isActive || isDone ? Colors.white : Colors.black87,
-                                ),
-                              ),
-                      ),
-                      if (index < 4)
-                        Container(
-                          width: 20,
-                          height: 2,
-                          color: step < _currentStep ? Colors.green : Colors.grey[300],
-                        ),
-                    ],
-                  );
-                }),
-              ),
-              const SizedBox(height: 24),
-
-              // Steps Contents
-              if (_currentStep == 1) _buildStep1(theme),
-              if (_currentStep == 2) _buildStep2(theme),
-              if (_currentStep == 3) _buildStep3(theme),
-              if (_currentStep == 4) _buildStep4(theme),
-              if (_currentStep == 5) _buildStep5(theme),
-            ],
-          ),
         ),
       ),
-      actions: [
-        if (_currentStep > 1)
-          TextButton(
-            onPressed: () => setState(() => _currentStep--),
-            child: const Text("Back"),
-          ),
-        const Spacer(),
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text("Cancel"),
-        ),
-        if (_currentStep < 5)
-          ElevatedButton(
-            onPressed: widget.subjects.isEmpty ? null : () => setState(() => _currentStep++),
-            child: const Text("Next"),
-          )
-        else
-          ElevatedButton(
-            onPressed: _isSaving ? null : _save,
-            child: _isSaving
-                ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Text("Save"),
-          ),
-      ],
-    );
-  }
-
-  // STEP 1: Choose Subject
-  Widget _buildStep1(ThemeData theme) {
-    if (widget.subjects.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 20.0),
-        child: Text(
-          "You must create a Subject first before scheduling a study session.",
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.red),
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Choose Subject", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        DropdownButtonFormField<Subject>(
-          initialValue: _selectedSubject,
-          decoration: const InputDecoration(labelText: "Subject"),
-          items: widget.subjects.map((sub) {
-            return DropdownMenuItem<Subject>(
-              value: sub,
-              child: Text(sub.name),
-            );
-          }).toList(),
-          onChanged: (val) {
-            setState(() {
-              _selectedSubject = val;
-              _selectedChapterIds.clear();
-              _availableChapters = [];
-            });
-            _loadChaptersForSubject();
-          },
-        ),
-      ],
-    );
-  }
-
-  // STEP 2: Choose Chapters (Checkboxes)
-  Widget _buildStep2(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text("Choose Chapters", style: TextStyle(fontWeight: FontWeight.bold)),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  if (_selectedChapterIds.length == _availableChapters.length) {
-                    _selectedChapterIds.clear();
-                  } else {
-                    _selectedChapterIds.clear();
-                    _selectedChapterIds.addAll(_availableChapters.map((c) => c.id));
-                  }
-                });
-              },
-              child: Text(_selectedChapterIds.length == _availableChapters.length ? "Deselect All" : "Select All"),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        if (_availableChapters.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(16.0),
-            child: Text("No chapters found in this subject. Go to Subjects details to add some.", style: TextStyle(fontStyle: FontStyle.italic)),
-          )
-        else
-          Container(
-            constraints: const BoxConstraints(maxHeight: 200),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _availableChapters.length,
-              itemBuilder: (context, index) {
-                final chapter = _availableChapters[index];
-                final isChecked = _selectedChapterIds.contains(chapter.id);
-                return CheckboxListTile(
-                  title: Text(chapter.name),
-                  value: isChecked,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  onChanged: (bool? val) {
-                    setState(() {
-                      if (val == true) {
-                        _selectedChapterIds.add(chapter.id);
-                      } else {
-                        _selectedChapterIds.remove(chapter.id);
-                      }
-                    });
-                  },
-                );
-              },
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildStep3(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Choose Study Type", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        RadioGroup<String>(
-          groupValue: _selectedStudyType,
-          onChanged: (val) {
-            if (val != null) {
-              setState(() => _selectedStudyType = val);
-            }
-          },
-          child: Column(
-            children: AppConstants.studyTypes.map(
-              (type) => RadioListTile<String>(
-                title: Text(type),
-                value: type,
-              ),
-            ).toList(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // STEP 4: Choose Timing Slot
-  Widget _buildStep4(ThemeData theme) {
-    final startStr = DateFormat('hh:mm a').format(_startTime);
-    final endStr = DateFormat('hh:mm a').format(_endTime);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Select Time Slot", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 16),
-        ListTile(
-          title: const Text("Start Time"),
-          trailing: Text(startStr, style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
-          onTap: () => _selectTime(true),
-        ),
-        const Divider(),
-        ListTile(
-          title: const Text("End Time"),
-          trailing: Text(endStr, style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
-          onTap: () => _selectTime(false),
-        ),
-      ],
-    );
-  }
-
-  // STEP 5: Add Optional Notes
-  Widget _buildStep5(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Optional Notes", style: TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _notesController,
-          maxLines: 4,
-          decoration: const InputDecoration(
-            hintText: "Add specific goals or reminders for this study session...",
-          ),
-        ),
-      ],
     );
   }
 }
+

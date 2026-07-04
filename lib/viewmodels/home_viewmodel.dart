@@ -48,11 +48,13 @@ class HomeViewModel extends ChangeNotifier {
   }
 
   // Load and refresh sessions from repository
-  Future<void> fetchHomeSessions() async {
-    _isLoading = true;
-    notifyListeners();
+  Future<void> fetchHomeSessions({bool forceRefresh = false}) async {
+    if (_allSessions.isEmpty || forceRefresh) {
+      _isLoading = true;
+      notifyListeners();
+    }
     try {
-      _allSessions = await _sessionRepo.fetchSessions();
+      _allSessions = await _sessionRepo.fetchSessions(forceRefresh: forceRefresh);
       _evaluateTimeSlots();
     } catch (e) {
       debugPrint("Error loading home sessions: $e");

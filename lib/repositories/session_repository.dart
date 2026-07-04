@@ -1,13 +1,54 @@
+import 'package:flutter/foundation.dart';
 import '../services/supabase_service.dart';
 import '../services/notification_service.dart';
 import '../models/study_session.dart';
 
 class SessionRepository {
+  // Singleton instance
+  static final SessionRepository _instance = SessionRepository._internal();
+
+  factory SessionRepository() {
+    return _instance;
+  }
+
+  SessionRepository._internal();
+
   final SupabaseService _db = SupabaseService.instance;
   final NotificationService _notifications = NotificationService.instance;
 
+  // Cache
+  List<StudySession>? _cachedSessions;
+
+  // Notification Status Flag
+  bool notificationSchedulingFailed = false;
+
+  /// Clears the sessions cache.
+  void clearCache() {
+    _cachedSessions = null;
+  }
+
+  /// Adds or updates a session in the local cache, preventing duplicates by checking ID.
+  void _addOrUpdateInCache(StudySession session) {
+    if (_cachedSessions == null) {
+      _cachedSessions = [session];
+      return;
+    }
+    final idx = _cachedSessions!.indexWhere((s) => s.id == session.id);
+    if (idx != -1) {
+      _cachedSessions![idx] = session;
+    } else {
+      _cachedSessions!.add(session);
+    }
+    _cachedSessions!.sort((a, b) => a.startTime.compareTo(b.startTime));
+  }
+
   /// Fetch all study sessions for the current user.
-  Future<List<StudySession>> fetchSessions() async {
+  Future<List<StudySession>> fetchSessions({bool forceRefresh = false}) async {
+    debugPrint("[SessionRepository] fetchSessions() executed (forceRefresh: $forceRefresh)");
+    if (!forceRefresh && _cachedSessions != null) {
+      return _cachedSessions!;
+    }
+
     // DEVELOPMENT ONLY
     // Replace with authenticated user before production.
     // final userId = _db.currentUser?.id;
@@ -19,10 +60,10 @@ class SessionRepository {
         // .eq('user_id', userId)
         .order('start_time', ascending: true);
 
-    return data.map((json) => StudySession.fromJson(json)).toList();
+    _cachedSessions = data.map((json) => StudySession.fromJson(json)).toList();
+    return _cachedSessions!;
   }
 
-  /// Create a new study session with associated chapters.
   Future<StudySession> createSession({
     required String subjectId,
     required String studyType,
@@ -31,6 +72,13 @@ class SessionRepository {
     required DateTime endTime,
     String? notes,
   }) async {
+    debugPrint("[SessionRepository] createSession() called");
+    if (_cachedSessions != null) {
+      debugPrint("[SessionRepository] session count before update: ${_cachedSessions!.length}");
+    } else {
+      debugPrint("[SessionRepository] session count before update: Cache is null");
+    }
+
     // DEVELOPMENT ONLY
     // Replace with authenticated user before production.
     // final userId = _db.currentUser?.id;
@@ -38,6 +86,7 @@ class SessionRepository {
     final userId = _db.currentUser?.id ?? '00000000-0000-0000-0000-000000000000';
 
     // 1. Insert session
+    debugPrint("[SessionRepository] Supabase insert executed (inserting into study_sessions)");
     final Map<String, dynamic> sessionData = await _db.client
         .from('study_sessions')
         .insert({
@@ -76,7 +125,20 @@ class SessionRepository {
     final session = StudySession.fromJson(fullSessionData);
 
     // 4. Schedule Local Notifications
-    await _notifications.scheduleSessionNotifications(session: session);
+    notificationSchedulingFailed = false;
+    try {
+      final result = await _notifications.scheduleSessionNotifications(session: session);
+      if (!result) {
+        notificationSchedulingFailed = true;
+      }
+    } catch (e) {
+      notificationSchedulingFailed = true;
+      debugPrint("Failed to schedule notifications: $e");
+    }
+
+    // 5. Update local cache
+    _addOrUpdateInCache(session);
+    debugPrint("[SessionRepository] session count after update: ${_cachedSessions?.length}");
 
     return session;
   }
@@ -130,9 +192,21 @@ class SessionRepository {
 
     // 4. Reschedule local notifications (cancel old ones first)
     await _notifications.cancelSessionNotifications(sessionId);
+    notificationSchedulingFailed = false;
     if (!isCompleted) {
-      await _notifications.scheduleSessionNotifications(session: session);
+      try {
+        final result = await _notifications.scheduleSessionNotifications(session: session);
+        if (!result) {
+          notificationSchedulingFailed = true;
+        }
+      } catch (e) {
+        notificationSchedulingFailed = true;
+        debugPrint("Failed to schedule notifications: $e");
+      }
     }
+
+    // 5. Update local cache
+    _addOrUpdateInCache(session);
 
     return session;
   }
@@ -149,11 +223,23 @@ class SessionRepository {
     final session = StudySession.fromJson(sessionData);
 
     // Cancel or reschedule notifications
+    notificationSchedulingFailed = false;
     if (isCompleted) {
       await _notifications.cancelSessionNotifications(sessionId);
     } else {
-      await _notifications.scheduleSessionNotifications(session: session);
+      try {
+        final result = await _notifications.scheduleSessionNotifications(session: session);
+        if (!result) {
+          notificationSchedulingFailed = true;
+        }
+      } catch (e) {
+        notificationSchedulingFailed = true;
+        debugPrint("Failed to schedule notifications: $e");
+      }
     }
+
+    // Update local cache
+    _addOrUpdateInCache(session);
 
     return session;
   }
@@ -165,5 +251,11 @@ class SessionRepository {
 
     // Delete session from DB (junction rows deleted via cascade)
     await _db.client.from('study_sessions').delete().eq('id', sessionId);
+
+    // Update local cache
+    if (_cachedSessions != null) {
+      _cachedSessions!.removeWhere((s) => s.id == sessionId);
+    }
   }
 }
+

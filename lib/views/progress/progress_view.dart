@@ -116,34 +116,36 @@ class _ProgressViewState extends State<ProgressView> {
         padding: const EdgeInsets.all(20.0),
         child: Row(
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "STUDY STREAK",
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "STUDY STREAK",
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  "${vm.streakCount} Days",
-                  style: theme.textTheme.headlineLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimaryContainer,
+                  const SizedBox(height: 6),
+                  Text(
+                    "${vm.streakCount} Days",
+                    style: theme.textTheme.headlineLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  "Keep studying daily to maintain your streak!",
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                  const SizedBox(height: 6),
+                  Text(
+                    "Keep studying daily to maintain your streak!",
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-            const Spacer(),
+            const SizedBox(width: 16),
             Icon(
               Icons.local_fire_department,
               size: 72,

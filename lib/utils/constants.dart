@@ -21,9 +21,12 @@ class AppConstants {
 
   // Study Types
   static const List<String> studyTypes = [
-    'Learning',
+    'Reading',
     'Revision',
-    'Practice Questions',
+    'Practice',
+    'Assignment',
+    'Lab',
     'Mock Test',
+    'Custom',
   ];
 }
