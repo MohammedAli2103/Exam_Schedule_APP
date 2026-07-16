@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Exam Preparation Mobile App
 
 A complete, production-ready, and highly scalable Flutter application built using **Flutter + Supabase** (Auth, DB, and Storage).
