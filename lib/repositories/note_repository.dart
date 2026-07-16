@@ -53,6 +53,11 @@ class NoteRepository {
     required String subjectName,
     required String fileName,
   }) async {
+    final fileSize = await file.length();
+    if (fileSize > 20 * 1024 * 1024) {
+      throw Exception("File size exceeds the maximum upload limit of 20 MB.");
+    }
+
     // 1. Upload to Supabase Storage
     final fileUrl = await _db.uploadNoteFile(
       file: file,
@@ -69,7 +74,6 @@ class NoteRepository {
     final cleanChapterName = _sanitizeFolderName(chapterName);
     final cleanFileName = _sanitizeFolderName(fileName);
     final filePath = '$userId/$cleanSubjectName/$cleanChapterName/$cleanFileName';
-    final fileSize = await file.length();
 
     // 2. Save metadata in DB
     final Map<String, dynamic> data = await _db.client

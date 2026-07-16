@@ -77,7 +77,7 @@ class ChapterRepository {
         .from('chapters')
         .update({'name': newName})
         .eq('id', id)
-        .select()
+        .select('*, notes(id)')
         .single();
 
     final chapter = Chapter.fromJson(data);
@@ -92,7 +92,7 @@ class ChapterRepository {
         .from('chapters')
         .update({'is_completed': isCompleted})
         .eq('id', id)
-        .select()
+        .select('*, notes(id)')
         .single();
 
     final chapter = Chapter.fromJson(data);

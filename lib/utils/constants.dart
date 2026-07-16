@@ -1,4 +1,7 @@
 class AppConstants {
+  // App Version
+  static const String appVersion = '1.0.0';
+
   // Supabase Configuration
   // TODO: Replace with your actual Supabase credentials
   static const String supabaseUrl = 'https://lpllkuvornkmppkkldjg.supabase.co';

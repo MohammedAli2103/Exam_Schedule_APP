@@ -10,7 +10,8 @@ import 'viewmodels/schedule_viewmodel.dart';
 import 'viewmodels/progress_viewmodel.dart';
 import 'viewmodels/settings_viewmodel.dart';
 import 'viewmodels/search_viewmodel.dart';
-// import 'views/auth/login_view.dart';
+import 'viewmodels/maintenance_viewmodel.dart';
+import 'views/maintenance_view.dart';
 import 'views/main_navigation_view.dart';
 
 void main() async {
@@ -42,6 +43,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ScheduleViewModel()),
         ChangeNotifierProvider(create: (_) => ProgressViewModel()),
         ChangeNotifierProvider(create: (_) => SearchViewModel()),
+        ChangeNotifierProvider(create: (_) => MaintenanceViewModel()..checkMaintenance()),
       ],
       child: const ExamPreparationApp(),
     ),
@@ -55,6 +57,34 @@ class ExamPreparationApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final settingsVm = Provider.of<SettingsViewModel>(context);
     final authVm = Provider.of<AuthViewModel>(context);
+    final maintenanceVm = Provider.of<MaintenanceViewModel>(context);
+
+    Widget homeWidget;
+    if (maintenanceVm.isLoading) {
+      homeWidget = const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    } else if (maintenanceVm.isMaintenanceActive) {
+      homeWidget = MaintenanceView(
+        config: maintenanceVm.config!,
+        currentVersion: maintenanceVm.currentVersion,
+      );
+    } else if (maintenanceVm.isForceUpdateActive) {
+      homeWidget = ForceUpdateView(
+        config: maintenanceVm.config!,
+        currentVersion: maintenanceVm.currentVersion,
+      );
+    } else {
+      homeWidget = authVm.isLoading
+          ? const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            )
+          : const MainNavigationView();
+    }
 
     return MaterialApp(
       title: 'Exam Preparation',
@@ -62,15 +92,7 @@ class ExamPreparationApp extends StatelessWidget {
       themeMode: settingsVm.themeMode,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      // Authentication temporarily disabled.
-      // Restore before production release.
-      home: authVm.isLoading
-          ? const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
-              ),
-            )
-          : const MainNavigationView(),
+      home: homeWidget,
     );
   }
 }

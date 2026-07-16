@@ -1,0 +1,6 @@
+#Future Plans and Correction
+1.Add Maintenance in App - whenever the app is in development/maintenance the users of the app must be displayed that the app is in maintenance and you can download the newer version of the app
+2. Once a chapter/module in a subject is mark as done or ticked mark, even if the notes is uploaded it shows zero notes. Then if the size of the uploaded notes is >4 Mb it does not get uploaded. Min File Size would be 20Mb
+3. Add Authentication so that the app could be personalized wrt to Individuals and Users can add their personal data and User would only be able to see their personal data and not others and in the current version if I add or make any changes in the app, those changes would be visible to all other users and thats what i want to make it Personalized and Authenticated, So Users and Enjoy the app freely and Their Privacy would not be at risk!
+4.Add Quiz Section in the app - An Inbuilt AI will be added which will automate the quiz subject by subject and wrt the chapters of the subject. The AI would retrieve the notes which is uploaded by the user in Subjects section and through the uploaded notes, AI would create a quiz with options and correct answer of the respective chapter. AI would need to create respective quiz for respective chapter for respective subject.
+#Further Plans would be discussed here#

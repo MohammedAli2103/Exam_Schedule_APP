@@ -323,6 +323,19 @@ class _SubjectDetailsViewState extends State<SubjectDetailsView> {
 
     final file = File(result.files.single.path!);
     final fileName = result.files.single.name;
+    final fileSize = result.files.single.size;
+
+    if (fileSize > 20 * 1024 * 1024) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("File size exceeds the 20 MB limit."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
