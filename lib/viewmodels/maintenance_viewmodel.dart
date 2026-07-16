@@ -33,16 +33,13 @@ class MaintenanceViewModel extends ChangeNotifier {
         // 1. Check if maintenance is enabled
         if (remoteConfig.maintenanceEnabled) {
           _isMaintenanceActive = true;
+          _isForceUpdateActive = false; // Ignore version checking while maintenance is active
         } else {
           _isMaintenanceActive = false;
           
-          // 2. Check for optional force update
-          if (remoteConfig.forceUpdate) {
-            final hasNewerVersion = _compareVersion(currentVersion, remoteConfig.latestVersion) < 0;
-            _isForceUpdateActive = hasNewerVersion;
-          } else {
-            _isForceUpdateActive = false;
-          }
+          // 2. Compare current app version with minimum_supported_version
+          final isUnsupported = _compareVersion(currentVersion, remoteConfig.minimumSupportedVersion) < 0;
+          _isForceUpdateActive = isUnsupported;
         }
       } else {
         // Fallback: If we couldn't fetch anything (remote is null and cache is null),

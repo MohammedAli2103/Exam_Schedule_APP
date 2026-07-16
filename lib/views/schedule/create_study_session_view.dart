@@ -8,6 +8,7 @@ import '../../utils/constants.dart';
 import '../../viewmodels/schedule_viewmodel.dart';
 import '../../viewmodels/subject_viewmodel.dart';
 import '../../viewmodels/home_viewmodel.dart';
+import '../../viewmodels/progress_viewmodel.dart';
 
 class CreateStudySessionPage extends StatefulWidget {
   final StudySession? existingSession;
@@ -333,7 +334,8 @@ class _CreateStudySessionPageState extends State<CreateStudySessionPage> {
     setState(() => _isSaving = false);
 
     if (success && mounted) {
-      homeVm.fetchHomeSessions();
+      homeVm.fetchHomeSessions(forceRefresh: true);
+      Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
       scheduleVm.changeSelectedDate(startDateTime);
       final hasFailed = scheduleVm.notificationSchedulingFailed;
       ScaffoldMessenger.of(context).showSnackBar(

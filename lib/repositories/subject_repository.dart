@@ -28,15 +28,13 @@ class SubjectRepository {
       return _cachedSubjects!;
     }
 
-    // DEVELOPMENT ONLY
-    // Replace with authenticated user before production.
-    // final userId = _db.currentUser?.id;
-    // if (userId == null) throw Exception("User is not authenticated");
+    final userId = _db.currentUser?.id;
+    if (userId == null) throw Exception("User is not authenticated");
 
     final List<dynamic> data = await _db.client
         .from('subjects')
         .select('*, chapters(id, is_completed, notes(id))')
-        // .eq('user_id', userId)
+        .eq('user_id', userId)
         .order('name', ascending: true);
 
     _cachedSubjects = data.map((json) {
@@ -71,11 +69,8 @@ class SubjectRepository {
 
   // Create Subject
   Future<Subject> createSubject(String name) async {
-    // DEVELOPMENT ONLY
-    // Replace with authenticated user before production.
-    // final userId = _db.currentUser?.id;
-    // if (userId == null) throw Exception("User is not authenticated");
-    final userId = _db.currentUser?.id ?? '00000000-0000-0000-0000-000000000000';
+    final userId = _db.currentUser?.id;
+    if (userId == null) throw Exception("User is not authenticated");
 
     final Map<String, dynamic> data = await _db.client
         .from('subjects')

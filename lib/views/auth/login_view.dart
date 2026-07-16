@@ -161,29 +161,6 @@ class _LoginViewState extends State<LoginView> {
                         )
                       : const Text("Sign In", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ),
-                const SizedBox(height: 16),
-
-                // Google Sign-In Button
-                OutlinedButton.icon(
-                  onPressed: authVm.isLoading
-                      ? null
-                      : () {
-                          // Handle google sign in authentication
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Redirecting to Google Sign-In..."),
-                            ),
-                          );
-                        },
-                  icon: const Icon(Icons.g_mobiledata, size: 30),
-                  label: const Text("Sign In with Google"),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 24),
 
                 // Register Link

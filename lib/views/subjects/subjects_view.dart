@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/subject_viewmodel.dart';
+import '../../viewmodels/home_viewmodel.dart';
+import '../../viewmodels/progress_viewmodel.dart';
 import '../../models/subject.dart';
 import 'subject_details_view.dart';
 
@@ -221,6 +223,8 @@ class _SubjectsViewState extends State<SubjectsView> {
                 if (name.isNotEmpty) {
                   final success = await subVm.addSubject(name);
                   if (success && context.mounted) {
+                    Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions(forceRefresh: true);
+                    Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
                     Navigator.pop(context);
                   } else if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -265,6 +269,8 @@ class _SubjectsViewState extends State<SubjectsView> {
                 if (name.isNotEmpty && name != subject.name) {
                   final success = await subVm.editSubject(subject.id, name);
                   if (success && context.mounted) {
+                    Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions(forceRefresh: true);
+                    Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
                     Navigator.pop(context);
                   }
                 }
@@ -295,6 +301,8 @@ class _SubjectsViewState extends State<SubjectsView> {
               onPressed: () async {
                 final success = await subVm.deleteSubject(subject.id);
                 if (success && context.mounted) {
+                  Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions(forceRefresh: true);
+                  Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("Deleted ${subject.name}")),

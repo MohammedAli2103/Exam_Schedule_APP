@@ -1,0 +1,653 @@
+Phase 2 is actually **the most important phase** of your entire app. Everything after this (AI, quizzes, analytics, study planner) depends on it.
+
+I would build it like this:
+
+---
+
+# Phase 2 – Authentication & Personalization
+
+## Overall Workflow
+
+```text id="1qte2s"
+User Opens App
+        │
+        ▼
+Is User Logged In?
+        │
+   ┌────┴────┐
+   │         │
+  No        Yes
+   │         │
+   ▼         ▼
+Login      Dashboard
+/Register
+             │
+             ▼
+ Load User Profile
+             │
+             ▼
+ Load User Data
+             │
+             ▼
+Subjects
+Notes
+Timetable
+Progress
+Quizzes
+```
+
+---
+
+# Phase 2.1 – Supabase Authentication
+
+## Workflow
+
+```text id="0uj2ny"
+Open App
+
+↓
+
+Login Screen
+
+↓
+
+Email / Password
+
+↓
+
+Supabase Auth
+
+↓
+
+JWT Session
+
+↓
+
+Store Session
+
+↓
+
+Dashboard
+```
+
+---
+
+# Phase 2.2 – User Profile
+
+After login
+
+Automatically create
+
+```text id="3u2tt9"
+profiles
+```
+
+Table
+
+| Column     | Type      |
+| ---------- | --------- |
+| id         | UUID      |
+| name       | TEXT      |
+| email      | TEXT      |
+| created_at | TIMESTAMP |
+
+---
+
+# Phase 2.3 – User Owns Everything
+
+Every table gets
+
+```text id="ylisr5"
+user_id
+```
+
+Example
+
+Subjects
+
+```text id="h2x3qq"
+id
+
+user_id
+
+name
+```
+
+Notes
+
+```text id="ylgojz"
+id
+
+user_id
+
+chapter_id
+```
+
+Timetable
+
+```text id="4h2k2m"
+id
+
+user_id
+
+study_date
+```
+
+Progress
+
+```text id="1h9myj"
+id
+
+user_id
+
+completion
+```
+
+---
+
+# Phase 2.4 – Row Level Security
+
+Instead of
+
+```text id="yr1vkz"
+Everyone
+```
+
+seeing
+
+everything
+
+↓
+
+Use
+
+```sql id="i4cvz0"
+auth.uid() = user_id
+```
+
+Now
+
+Ali
+
+can only see
+
+Ali's data.
+
+---
+
+# Phase 2.5 – Flutter Login Flow
+
+```text id="6iyc2h"
+Splash
+
+↓
+
+Check Session
+
+↓
+
+Logged In?
+
+↓
+
+Dashboard
+
+↓
+
+Else
+
+↓
+
+Login
+```
+
+---
+
+# Phase 2.6 – Registration
+
+```text id="e74fhu"
+Email
+
+↓
+
+Password
+
+↓
+
+Confirm Password
+
+↓
+
+Supabase Auth
+
+↓
+
+Verify Email
+
+↓
+
+Profile Created
+```
+
+---
+
+# Phase 2.7 – Forgot Password
+
+```text id="jlwm34"
+Email
+
+↓
+
+Reset Link
+
+↓
+
+New Password
+```
+
+---
+
+# Phase 2.8 – Logout
+
+```text id="77n6qk"
+Settings
+
+↓
+
+Logout
+
+↓
+
+Delete Session
+
+↓
+
+Login Screen
+```
+
+---
+
+# Phase 2.9 – Storage
+
+Instead of
+
+```text id="fcz2hb"
+notes/
+
+physics.pdf
+```
+
+Use
+
+```text id="18qocq"
+user_id/
+
+Physics/
+
+Module 1/
+
+notes.pdf
+```
+
+Every user has
+
+their own folder.
+
+---
+
+# Phase 2.10 – Dashboard Loading
+
+Instead of loading
+
+everything
+
+↓
+
+Only load
+
+```text id="tvbyq5"
+WHERE
+
+user_id=currentUser
+```
+
+Much faster.
+
+---
+
+# Database Structure
+
+```text id="lj1o1y"
+Auth Users
+
+↓
+
+Profiles
+
+↓
+
+Subjects
+
+↓
+
+Chapters
+
+↓
+
+Notes
+
+↓
+
+Timetable
+
+↓
+
+Progress
+
+↓
+
+Quiz Sets
+
+↓
+
+Quiz Questions
+
+↓
+
+Quiz Results
+```
+
+---
+
+# Flutter Architecture
+
+```text id="3g1d7u"
+AuthRepository
+
+↓
+
+AuthViewModel
+
+↓
+
+LoginView
+
+↓
+
+Dashboard
+```
+
+---
+
+# Supabase
+
+```text id="js4mlk"
+Auth
+
+↓
+
+JWT
+
+↓
+
+RLS
+
+↓
+
+Database
+
+↓
+
+Storage
+```
+
+---
+
+# Login Process
+
+```text id="jlwm35"
+User
+
+↓
+
+Enter Email
+
+↓
+
+Supabase Auth
+
+↓
+
+Receive JWT
+
+↓
+
+Store Session
+
+↓
+
+Open Dashboard
+```
+
+---
+
+# Opening App Again
+
+```text id="5n4gjx"
+App Opens
+
+↓
+
+Session Exists?
+
+↓
+
+Yes
+
+↓
+
+Dashboard
+
+↓
+
+No
+
+↓
+
+Login
+```
+
+---
+
+# Uploading Notes
+
+```text id="u7qv9k"
+User
+
+↓
+
+Select PDF
+
+↓
+
+Supabase Storage
+
+↓
+
+user_id/
+
+↓
+
+Save Metadata
+
+↓
+
+Notes Table
+```
+
+---
+
+# Fetching Notes
+
+```text id="m6qt3e"
+Dashboard
+
+↓
+
+Current User
+
+↓
+
+user_id
+
+↓
+
+Fetch Only
+
+That User's Notes
+```
+
+---
+
+# Security
+
+Every table
+
+```text id="cs3xf6"
+Enable RLS
+
+↓
+
+SELECT
+
+↓
+
+INSERT
+
+↓
+
+UPDATE
+
+↓
+
+DELETE
+
+↓
+
+auth.uid()=user_id
+```
+
+---
+
+# Folder Structure
+
+```text id="q4jv5b"
+repositories/
+
+    auth_repository.dart
+
+viewmodels/
+
+    auth_viewmodel.dart
+
+views/
+
+    login_view.dart
+
+    register_view.dart
+
+    forgot_password_view.dart
+
+models/
+
+    profile.dart
+```
+
+---
+
+# Development Timeline
+
+### Sprint 1
+
+* Supabase Auth
+* Login
+* Registration
+* Logout
+* Session Management
+
+---
+
+### Sprint 2
+
+* Profiles
+* User Data
+* Storage
+* RLS
+
+---
+
+### Sprint 3
+
+* Dashboard Personalization
+* Data Migration
+* Testing
+
+---
+
+# Final Workflow
+
+```text id="vqtvw4"
+Install App
+
+↓
+
+Register
+
+↓
+
+Email Verification
+
+↓
+
+Login
+
+↓
+
+Profile Created
+
+↓
+
+Create Subject
+
+↓
+
+Create Chapters
+
+↓
+
+Upload Notes
+
+↓
+
+Study Progress
+
+↓
+
+Generate Quiz (Phase 4)
+
+↓
+
+Take Quiz
+
+↓
+
+Analytics
+
+↓
+
+AI Study Assistant
+```
+
+# One recommendation
+
+Don't think of Phase 2 as "adding login." Think of it as **making the app multi-user**. Every feature from this point onward—including maintenance mode, quiz generation, analytics, study streaks, and your future AI features—should assume that all data belongs to a specific authenticated user. That mindset will help you design the database and Flutter code cleanly from the start.

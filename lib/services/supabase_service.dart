@@ -71,10 +71,8 @@ class SupabaseService {
     required String chapterName,
     required String fileName,
   }) async {
-    // DEVELOPMENT ONLY
-    // Replace with authenticated user before production.
-    // if (currentUser == null) throw Exception("User is not authenticated");
-    final userId = currentUser?.id ?? '00000000-0000-0000-0000-000000000000';
+    final userId = currentUser?.id;
+    if (userId == null) throw Exception("User is not authenticated");
     
     // Clean strings to prevent folder path issues
     final cleanSubjectName = _sanitizeFolderName(subjectName);

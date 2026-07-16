@@ -49,15 +49,13 @@ class SessionRepository {
       return _cachedSessions!;
     }
 
-    // DEVELOPMENT ONLY
-    // Replace with authenticated user before production.
-    // final userId = _db.currentUser?.id;
-    // if (userId == null) throw Exception("User is not authenticated");
+    final userId = _db.currentUser?.id;
+    if (userId == null) throw Exception("User is not authenticated");
 
     final List<dynamic> data = await _db.client
         .from('study_sessions')
         .select('*, subjects(name), study_session_chapters(chapters(*, notes(id)))')
-        // .eq('user_id', userId)
+        .eq('user_id', userId)
         .order('start_time', ascending: true);
 
     _cachedSessions = data.map((json) => StudySession.fromJson(json)).toList();
@@ -79,11 +77,8 @@ class SessionRepository {
       debugPrint("[SessionRepository] session count before update: Cache is null");
     }
 
-    // DEVELOPMENT ONLY
-    // Replace with authenticated user before production.
-    // final userId = _db.currentUser?.id;
-    // if (userId == null) throw Exception("User is not authenticated");
-    final userId = _db.currentUser?.id ?? '00000000-0000-0000-0000-000000000000';
+    final userId = _db.currentUser?.id;
+    if (userId == null) throw Exception("User is not authenticated");
 
     // 1. Insert session
     debugPrint("[SessionRepository] Supabase insert executed (inserting into study_sessions)");

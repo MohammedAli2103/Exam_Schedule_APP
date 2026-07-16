@@ -12,6 +12,7 @@ import 'viewmodels/settings_viewmodel.dart';
 import 'viewmodels/search_viewmodel.dart';
 import 'viewmodels/maintenance_viewmodel.dart';
 import 'views/maintenance_view.dart';
+import 'views/auth/login_view.dart';
 import 'views/main_navigation_view.dart';
 
 void main() async {
@@ -83,7 +84,9 @@ class ExamPreparationApp extends StatelessWidget {
                 child: CircularProgressIndicator(),
               ),
             )
-          : const MainNavigationView();
+          : (authVm.isAuthenticated
+              ? const MainNavigationView()
+              : const LoginView());
     }
 
     return MaterialApp(

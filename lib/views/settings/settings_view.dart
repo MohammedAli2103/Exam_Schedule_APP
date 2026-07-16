@@ -6,7 +6,7 @@ import '../../viewmodels/home_viewmodel.dart';
 import '../../viewmodels/schedule_viewmodel.dart';
 import '../../viewmodels/subject_viewmodel.dart';
 import '../../viewmodels/progress_viewmodel.dart';
-// import '../auth/login_view.dart';
+import '../auth/login_view.dart';
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
@@ -14,7 +14,7 @@ class SettingsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settingsVm = Provider.of<SettingsViewModel>(context);
-    final authVm = Provider.of<AuthViewModel>(context, listen: false);
+    final authVm = Provider.of<AuthViewModel>(context);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -143,10 +143,6 @@ class SettingsView extends StatelessWidget {
           ),
           const SizedBox(height: 32),
 
-          // --- LOGOUT BUTTON ---
-          // Authentication temporarily disabled.
-          // Restore before production release.
-          /*
           ElevatedButton.icon(
             onPressed: () async {
               await authVm.logout();
@@ -166,7 +162,6 @@ class SettingsView extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
-          */
         ],
       ),
     );

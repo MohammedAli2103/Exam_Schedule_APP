@@ -1,0 +1,520 @@
+
+# Phase 4 Workflow
+
+```text
+                USER
+                  │
+                  ▼
+        Upload Notes (PDF)
+                  │
+                  ▼
+         Supabase Storage
+                  │
+                  ▼
+        Click "Generate Quiz"
+                  │
+                  ▼
+           Python Backend
+                  │
+        ┌─────────┴─────────┐
+        ▼                   ▼
+  Rule-Based Engine    Friend's LLM (Future)
+        │                   │
+        └─────────┬─────────┘
+                  ▼
+          Save Questions
+            (Supabase)
+                  │
+                  ▼
+          Flutter Quiz Screen
+```
+
+---
+
+# Phase 4.1 — Build the Backend Skeleton
+
+**Goal:** Build the infrastructure without AI.
+
+### Tasks
+
+```
+Create FastAPI project
+
+↓
+
+Connect to Supabase
+
+↓
+
+Health endpoint
+
+↓
+
+Generate Quiz endpoint
+
+↓
+
+Test API
+```
+
+### Output
+
+```
+POST /generateQuiz
+```
+
+Returns
+
+```json
+{
+    "status":"working"
+}
+```
+
+No quiz generation yet.
+
+---
+
+# Phase 4.2 — PDF Pipeline
+
+### Workflow
+
+```
+Flutter
+
+↓
+
+Upload PDF
+
+↓
+
+Supabase Storage
+
+↓
+
+Get URL
+
+↓
+
+Python
+
+↓
+
+Download PDF
+
+↓
+
+Extract Text
+
+↓
+
+Return Text
+```
+
+### Goal
+
+Verify text extraction.
+
+---
+
+# Phase 4.3 — Clean the Text
+
+```
+Extracted Text
+
+↓
+
+Remove
+
+Headers
+
+Footers
+
+Page Numbers
+
+Blank Lines
+
+↓
+
+Clean Text
+```
+
+Store the cleaned text.
+
+---
+
+# Phase 4.4 — Split into Chunks
+
+Instead of
+
+```
+100 pages
+```
+
+↓
+
+```
+Chunk 1
+
+Chunk 2
+
+Chunk 3
+```
+
+Around
+
+```
+300–500 words
+```
+
+per chunk.
+
+---
+
+# Phase 4.5 — Detect Chapters
+
+Example
+
+```
+Module 1
+
+↓
+
+Chunk 1
+
+Chunk 2
+```
+
+Store
+
+```
+Module Name
+
+Chapter Name
+
+Page Number
+```
+
+This helps generate quizzes chapter-wise.
+
+---
+
+# Phase 4.6 — Generate Questions (Free)
+
+Using
+
+* spaCy
+* KeyBERT
+* NLTK
+
+Generate
+
+```
+MCQ
+
+↓
+
+True False
+
+↓
+
+Fill Blank
+```
+
+No LLM.
+
+---
+
+# Phase 4.7 — Validate Questions
+
+Remove
+
+* duplicates
+* incomplete questions
+* bad options
+
+Assign
+
+```
+Easy
+
+Medium
+
+Hard
+```
+
+---
+
+# Phase 4.8 — Save to Database
+
+Instead of only
+
+```
+quiz_questions
+```
+
+Create:
+
+```
+quiz_sets
+
+↓
+
+quiz_questions
+
+↓
+
+quiz_results
+```
+
+---
+
+# Phase 4.9 — Flutter Quiz
+
+User sees
+
+```
+Physics
+
+↓
+
+Module 3
+
+↓
+
+Quiz
+
+↓
+
+Submit
+
+↓
+
+Score
+
+↓
+
+Review Answers
+```
+
+---
+
+# Phase 4.10 — Analytics
+
+Save
+
+```
+Score
+
+↓
+
+Time Taken
+
+↓
+
+Wrong Questions
+
+↓
+
+Accuracy
+```
+
+This will later power personalized study features.
+
+---
+
+# Phase 4.11 — Friend's LLM
+
+Later
+
+Replace
+
+```
+Rule Generator
+```
+
+with
+
+```
+Friend's LLM
+```
+
+Everything else remains unchanged.
+
+---
+
+# Folder Structure
+
+```
+quiz_backend/
+
+│
+├── app.py
+│
+├── routes/
+│      quiz.py
+│
+├── services/
+│      pdf_service.py
+│      chunk_service.py
+│      keyword_service.py
+│      question_service.py
+│      validation_service.py
+│      supabase_service.py
+│
+├── models/
+│      quiz.py
+│
+├── utils/
+│      cleaner.py
+│
+├── uploads/
+│
+└── requirements.txt
+```
+
+---
+
+# Database
+
+```
+subjects
+
+↓
+
+chapters
+
+↓
+
+notes
+
+↓
+
+quiz_sets
+
+↓
+
+quiz_questions
+
+↓
+
+quiz_results
+```
+
+---
+
+# Flutter Flow
+
+```
+Notes Screen
+
+↓
+
+Generate Quiz Button
+
+↓
+
+Loading
+
+↓
+
+Backend
+
+↓
+
+Processing
+
+↓
+
+Quiz Ready
+
+↓
+
+Take Quiz
+```
+
+---
+
+# Future Flow
+
+When your friend's LLM is ready:
+
+```
+PDF
+
+↓
+
+Python Backend
+
+↓
+
+Extract Text
+
+↓
+
+Friend's LLM
+
+↓
+
+Questions
+
+↓
+
+Supabase
+
+↓
+
+Flutter
+```
+
+Notice **Flutter doesn't change at all**.
+
+---
+
+# Development Timeline
+
+### Sprint 1 (1–2 days)
+
+* Backend setup
+* FastAPI
+* Supabase connection
+* API endpoints
+
+### Sprint 2 (2–3 days)
+
+* PDF extraction
+* Text cleaning
+* Chunking
+
+### Sprint 3 (3–4 days)
+
+* Rule-based question generation
+* Save quizzes to Supabase
+* Flutter quiz interface
+
+### Sprint 4 (2–3 days)
+
+* Question validation
+* Analytics
+* Performance improvements
+
+### Sprint 5 (Future)
+
+* Integrate your friend's LLM
+* Improve MCQ quality
+* Generate explanations
+* Add conversational study features
+
+---
+
+## One recommendation before starting
+
+**Finish Phase 2 (Authentication & Personalization) first.**
+
+Once each user has their own account:
+
+* Their uploaded PDFs belong only to them.
+* Generated quizzes are private.
+* Quiz history and analytics become user-specific.
+* Your Python backend simply processes requests for authenticated users.
+

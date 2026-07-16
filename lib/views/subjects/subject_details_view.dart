@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../viewmodels/subject_viewmodel.dart';
+import '../../viewmodels/home_viewmodel.dart';
+import '../../viewmodels/progress_viewmodel.dart';
 import '../../models/chapter.dart';
 import '../../models/note.dart';
 
@@ -151,9 +153,13 @@ class _SubjectDetailsViewState extends State<SubjectDetailsView> {
             children: [
               Checkbox(
                 value: chapter.isCompleted,
-                onChanged: (bool? val) {
+                onChanged: (bool? val) async {
                   if (val != null) {
-                    subVm.toggleChapterCompletion(chapter.id, val);
+                    await subVm.toggleChapterCompletion(chapter.id, val);
+                    if (context.mounted) {
+                      Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions(forceRefresh: true);
+                      Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
+                    }
                   }
                 },
               ),
@@ -207,7 +213,11 @@ class _SubjectDetailsViewState extends State<SubjectDetailsView> {
                 final name = controller.text.trim();
                 if (name.isNotEmpty) {
                   final success = await subVm.addChapter(widget.subjectId, name);
-                  if (success && context.mounted) Navigator.pop(context);
+                  if (success && context.mounted) {
+                    Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions(forceRefresh: true);
+                    Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
+                    Navigator.pop(context);
+                  }
                 }
               },
               child: const Text("Add"),
@@ -353,6 +363,8 @@ class _SubjectDetailsViewState extends State<SubjectDetailsView> {
 
     if (context.mounted) {
       if (success) {
+        Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions(forceRefresh: true);
+        Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Notes uploaded successfully!"), backgroundColor: Colors.green),
         );
@@ -572,7 +584,11 @@ class _SubjectDetailsViewState extends State<SubjectDetailsView> {
                 final name = controller.text.trim();
                 if (name.isNotEmpty && name != chapter.name) {
                   final success = await subVm.renameChapter(chapter.id, name);
-                  if (success && context.mounted) Navigator.pop(context);
+                  if (success && context.mounted) {
+                    Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions(forceRefresh: true);
+                    Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
+                    Navigator.pop(context);
+                  }
                 }
               },
               child: const Text("Rename"),
@@ -598,6 +614,8 @@ class _SubjectDetailsViewState extends State<SubjectDetailsView> {
               onPressed: () async {
                 final success = await subVm.deleteChapter(chapter.id);
                 if (success && context.mounted) {
+                  Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions(forceRefresh: true);
+                  Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text("Deleted ${chapter.name}")),
@@ -627,7 +645,11 @@ class _SubjectDetailsViewState extends State<SubjectDetailsView> {
                 final name = controller.text.trim();
                 if (name.isNotEmpty && name != note.name) {
                   final success = await subVm.renameNote(note.id, name);
-                  if (success && context.mounted) Navigator.pop(context);
+                  if (success && context.mounted) {
+                    Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions(forceRefresh: true);
+                    Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
+                    Navigator.pop(context);
+                  }
                 }
               },
               child: const Text("Rename"),
@@ -651,6 +673,8 @@ class _SubjectDetailsViewState extends State<SubjectDetailsView> {
               onPressed: () async {
                 final success = await subVm.deleteNote(note);
                 if (success && context.mounted) {
+                  Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions(forceRefresh: true);
+                  Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Note deleted.")),

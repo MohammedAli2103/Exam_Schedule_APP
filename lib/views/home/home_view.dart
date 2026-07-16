@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../viewmodels/home_viewmodel.dart';
 import '../../viewmodels/subject_viewmodel.dart';
+import '../../viewmodels/auth_viewmodel.dart';
+import '../../viewmodels/progress_viewmodel.dart';
 import '../../models/study_session.dart';
 import '../../models/chapter.dart';
 import '../subjects/subject_details_view.dart';
@@ -27,6 +29,7 @@ class _HomeViewState extends State<HomeView> {
   @override
   Widget build(BuildContext context) {
     final homeVm = Provider.of<HomeViewModel>(context);
+    final authVm = Provider.of<AuthViewModel>(context);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -45,7 +48,7 @@ class _HomeViewState extends State<HomeView> {
                 : CrossAxisAlignment.stretch,
             children: [
               // --- WELCOME CARD ---
-              _buildWelcomeCard(theme),
+              _buildWelcomeCard(theme, authVm),
               const SizedBox(height: 16),
 
               // --- TODAY'S PROGRESS PROGRESS BAR ---
@@ -65,27 +68,64 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _buildWelcomeCard(ThemeData theme) {
+  Widget _buildWelcomeCard(ThemeData theme, AuthViewModel authVm) {
     final timeStr = DateFormat('EEEE, MMMM d').format(DateTime.now());
+    final name = authVm.profile?.fullName ?? "Student";
+    final streak = authVm.profile?.streakCount ?? 0;
+
     return Card(
       color: theme.colorScheme.primaryContainer,
       child: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              "Keep up the effort!",
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Welcome back, $name!",
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "Keep up the effort!",
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    timeStr,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              timeStr,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onPrimaryContainer,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.local_fire_department, color: Colors.orange, size: 24),
+                  const SizedBox(width: 4),
+                  Text(
+                    "$streak",
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -313,7 +353,12 @@ class _HomeViewState extends State<HomeView> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: session.isCompleted ? null : () => homeVm.markCurrentSessionCompleted(),
+                    onPressed: session.isCompleted ? null : () async {
+                      await homeVm.markCurrentSessionCompleted();
+                      if (mounted) {
+                        Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
+                      }
+                    },
                     icon: const Icon(Icons.check_circle_outline),
                     label: Text(session.isCompleted ? "Completed" : "Mark Done"),
                     style: ElevatedButton.styleFrom(

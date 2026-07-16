@@ -11,6 +11,8 @@ import 'package:exam_preparation/viewmodels/progress_viewmodel.dart';
 import 'package:exam_preparation/viewmodels/settings_viewmodel.dart';
 import 'package:exam_preparation/viewmodels/search_viewmodel.dart';
 
+import 'package:exam_preparation/viewmodels/maintenance_viewmodel.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   SharedPreferences.setMockInitialValues({});
@@ -35,17 +37,23 @@ void main() {
           ChangeNotifierProvider(create: (_) => ScheduleViewModel()),
           ChangeNotifierProvider(create: (_) => ProgressViewModel()),
           ChangeNotifierProvider(create: (_) => SearchViewModel()),
+          ChangeNotifierProvider(create: (_) => MaintenanceViewModel()..checkMaintenance()),
         ],
         child: const ExamPreparationApp(),
       ),
     );
 
-    // Verify we are on Dashboard/Home page by checking title
-    expect(find.text('Dashboard'), findsOneWidget);
-    
-    // Check navigation items are present
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.text('Subjects'), findsOneWidget);
-    expect(find.text('Schedule'), findsOneWidget);
+    // Run the async operations inside tester.runAsync to let real network events execute
+    await tester.runAsync(() async {
+      await Future.delayed(const Duration(milliseconds: 1000));
+    });
+
+    // Rebuild the UI to show the resolved view
+    await tester.pump();
+
+    // Verify we are on Login page by checking key UI items
+    expect(find.text('Sign In'), findsOneWidget);
+    expect(find.text("Don't have an account?"), findsOneWidget);
+    expect(find.text('Sign Up'), findsOneWidget);
   });
 }

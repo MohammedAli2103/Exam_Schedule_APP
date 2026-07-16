@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../repositories/auth_repository.dart';
 import '../models/profile.dart';
+import '../repositories/subject_repository.dart';
+import '../repositories/chapter_repository.dart';
+import '../repositories/note_repository.dart';
 
 class AuthViewModel extends ChangeNotifier {
   final AuthRepository _authRepo = AuthRepository();
@@ -13,42 +16,22 @@ class AuthViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  // Authentication temporarily disabled.
-  // Restore before production release.
-  bool get isAuthenticated => true; // _authRepo.isAuthenticated;
+  bool get isAuthenticated => _authRepo.isAuthenticated;
 
   // Initialize and check current user
   Future<void> checkAuthStatus() async {
-    // Authentication temporarily disabled.
-    // Restore before production release.
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // DEVELOPMENT ONLY: Auto login with developer credentials to satisfy database foreign keys.
-      if (!_authRepo.isAuthenticated || _authRepo.currentUser == null) {
-        try {
-          await _authRepo.signIn(
-            email: 'developer@example.com',
-            password: 'developer_password',
-          );
-        } catch (e) {
-          try {
-            await _authRepo.signUp(
-              email: 'developer@example.com',
-              password: 'developer_password',
-              fullName: 'Developer Account',
-            );
-          } catch (signUpError) {
-            debugPrint("Auto-registration failed: $signUpError");
-          }
+      if (_authRepo.isAuthenticated) {
+        final user = _authRepo.currentUser;
+        if (user != null) {
+          _profile = await _authRepo.fetchProfile(user.id);
         }
-      }
-
-      final user = _authRepo.currentUser;
-      if (user != null) {
-        _profile = await _authRepo.fetchProfile(user.id);
+      } else {
+        _profile = null;
       }
     } catch (e) {
       _errorMessage = e.toString();
@@ -116,6 +99,11 @@ class AuthViewModel extends ChangeNotifier {
     try {
       await _authRepo.signOut();
       _profile = null;
+      
+      // Clear data caches on logout
+      SubjectRepository().clearCache();
+      ChapterRepository().clearCache();
+      NoteRepository().clearCache();
     } catch (e) {
       _errorMessage = e.toString();
     } finally {

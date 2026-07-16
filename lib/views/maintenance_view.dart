@@ -194,10 +194,10 @@ class ForceUpdateView extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Scaffold(
-      body: SafeArea(
-        child: PopScope(
-          canPop: false,
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: SafeArea(
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
@@ -218,9 +218,9 @@ class ForceUpdateView extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 32),
-
+    
                   Text(
-                    "Update Required",
+                    "App Update Required",
                     style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: theme.colorScheme.onSurface,
@@ -228,7 +228,7 @@ class ForceUpdateView extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
-
+    
                   Text(
                     "A critical update is required to continue using the application. Please update the app to the latest version.",
                     style: theme.textTheme.bodyLarge?.copyWith(
@@ -238,17 +238,19 @@ class ForceUpdateView extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+    
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    alignment: WrapAlignment.center,
                     children: [
-                      _buildVersionBadge(context, "Your Version", currentVersion),
-                      const SizedBox(width: 16),
+                      _buildVersionBadge(context, "Current Version", currentVersion),
+                      _buildVersionBadge(context, "Minimum Supported Version", config.minimumSupportedVersion),
                       _buildVersionBadge(context, "Latest Version", config.latestVersion),
                     ],
                   ),
                   const SizedBox(height: 40),
-
+    
                   if (config.downloadUrl.isNotEmpty) ...[
                     SizedBox(
                       width: double.infinity,

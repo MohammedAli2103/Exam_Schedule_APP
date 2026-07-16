@@ -67,9 +67,8 @@ class NoteRepository {
     );
 
     // Formulate storage path for DB reference to allow deletions
-    // DEVELOPMENT ONLY
-    // Replace with authenticated user before production.
-    final userId = _db.currentUser?.id ?? '00000000-0000-0000-0000-000000000000';
+    final userId = _db.currentUser?.id;
+    if (userId == null) throw Exception("User is not authenticated");
     final cleanSubjectName = _sanitizeFolderName(subjectName);
     final cleanChapterName = _sanitizeFolderName(chapterName);
     final cleanFileName = _sanitizeFolderName(fileName);

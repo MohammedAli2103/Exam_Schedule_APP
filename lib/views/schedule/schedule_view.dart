@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../viewmodels/schedule_viewmodel.dart';
 import '../../viewmodels/subject_viewmodel.dart';
 import '../../viewmodels/home_viewmodel.dart';
+import '../../viewmodels/progress_viewmodel.dart';
 import '../../models/study_session.dart';
 import '../../models/chapter.dart';
 import '../subjects/subject_details_view.dart';
@@ -316,10 +317,13 @@ class _ScheduleViewState extends State<ScheduleView> {
               ListTile(
                 leading: const Icon(Icons.check_circle_outline),
                 title: Text(session.isCompleted ? "Mark as Pending" : "Mark as Completed"),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(context);
-                  vm.toggleSessionCompletion(session.id, !session.isCompleted);
-                  Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions();
+                  await vm.toggleSessionCompletion(session.id, !session.isCompleted);
+                  if (context.mounted) {
+                    Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions(forceRefresh: true);
+                    Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
+                  }
                 },
               ),
               ListTile(
@@ -426,7 +430,8 @@ class _ScheduleViewState extends State<ScheduleView> {
                 final success = await vm.deleteSession(session.id);
                 if (success && context.mounted) {
                   Navigator.pop(context);
-                  Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions();
+                  Provider.of<HomeViewModel>(context, listen: false).fetchHomeSessions(forceRefresh: true);
+                  Provider.of<ProgressViewModel>(context, listen: false).fetchProgressData(forceRefresh: true);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Study session deleted.")),
                   );
